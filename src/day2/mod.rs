@@ -1,6 +1,5 @@
-use std::num::ParseIntError;
+use std::{collections::HashMap, num::ParseIntError};
 use crate::day2::RunProgramError::{NoHaltCode, UnknownOpCode};
-use std::collections::HashMap;
 
 static PART1_INPUT: &str = include_str!("./part1/input");
 
@@ -8,15 +7,15 @@ type Intcode = Vec<u32>;
 
 pub fn part1() {
     println!("### Day 2 Part 1 ###");
-    
+
     test_parse_program();
     test_run_program();
-    
+
     let mut program = parse_program(PART1_INPUT).unwrap();
     program[1] = 12;
     program[2] = 2;
     let program_after_run = run_program(program).unwrap();
-    
+
     println!("Value at position 0: {}", program_after_run[0]);
 }
 
@@ -50,7 +49,7 @@ fn run_program(mut p: Intcode) -> Result<Intcode, RunProgramError> {
         if i >= p.len() {
             return Err(NoHaltCode);
         }
-        
+
         let opcode = p[i];
         match opcode {
             1 => match p[i+1..=i+3] {
@@ -70,7 +69,7 @@ fn run_program(mut p: Intcode) -> Result<Intcode, RunProgramError> {
             _ =>
                 return Err(UnknownOpCode)
         }
-        
+
         i += 4;
     }
 }
