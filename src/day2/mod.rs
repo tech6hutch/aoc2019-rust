@@ -1,9 +1,12 @@
 use std::{collections::HashMap, num::ParseIntError};
 use crate::day2::RunProgramError::{NoHaltCode, UnknownOpCode};
 
-static PART1_INPUT: &str = include_str!("./part1/input");
+type Int = u32;
+type Intcode = Vec<Int>;
 
-type Intcode = Vec<u32>;
+static PART1_INPUT: &str = include_str!("./part1/input");
+const PART1_ANSWER: Int = 4090689;
+const PART2_ANSWER: Int = 7733;
 
 pub fn part1() {
     println!("### Day 2 Part 1 ###");
@@ -11,12 +14,14 @@ pub fn part1() {
     test_parse_program();
     test_run_program();
 
-    let mut program = parse_program(PART1_INPUT).unwrap();
-    program[1] = 12;
-    program[2] = 2;
-    let program_after_run = run_program(program).unwrap();
+    let mut memory = parse_program(PART1_INPUT).unwrap();
+    memory[1] = 12;
+    memory[2] = 2;
+    memory = run_program(memory).unwrap();
+    let output = memory[0];
+    assert_eq!(output, PART1_ANSWER);
 
-    println!("Value at position 0: {}", program_after_run[0]);
+    println!("Value at position 0: {}", output);
 }
 
 fn parse_program(p: &str) -> Result<Intcode, ParseIntError> {
@@ -53,24 +58,29 @@ fn run_program(mut p: Intcode) -> Result<Intcode, RunProgramError> {
         let opcode = p[i];
         match opcode {
             1 => match p[i+1..=i+3] {
-                [a1, a2, out] =>
-                    p[out as usize] = p[a1 as usize] + p[a2 as usize],
+                [a1, a2, out] => {
+                    p[out as usize] = p[a1 as usize] + p[a2 as usize];
+                    i += 4;
+                },
                 _ =>
                     return Err(NoHaltCode)
             },
+
             2 => match p[i+1..=i+3] {
-                [f1, f2, out] =>
-                    p[out as usize] = p[f1 as usize] * p[f2 as usize],
+                [f1, f2, out] => {
+                    p[out as usize] = p[f1 as usize] * p[f2 as usize];
+                    i += 4;
+                },
                 _ =>
                     return Err(NoHaltCode)
             },
+
             99 =>
                 return Ok(p),
+
             _ =>
                 return Err(UnknownOpCode)
         }
-
-        i += 4;
     }
 }
 fn test_run_program() {
@@ -84,4 +94,37 @@ fn test_run_program() {
     for (input, output) in tests {
         assert_eq!(run_program(input).unwrap(), output);
     }
+}
+
+pub fn part2() {
+    println!("### Day 2 Part 2 ###");
+
+    const NEEDED_OUTPUT: Int = 19690720;
+    if let Some((noun, verb)) = find_noun_verb(parse_program(PART1_INPUT).unwrap(), NEEDED_OUTPUT) {
+        let answer = 100 * noun + verb;
+        assert_eq!(answer, PART2_ANSWER);
+        println!("100 * noun + verb: {}", answer);
+    } else {
+        eprintln!("Error: Could not find the correct noun and verb.");
+    }
+}
+
+fn find_noun_verb(memory: Intcode, needed_output: Int) -> Option<(Int, Int)> {
+    for n in 0..=100 {
+        for v in 0..=100 {
+            match run_with_noun_verb(memory.clone(), n, v) {
+                Ok(output) if output == needed_output =>
+                    return Some((n, v)),
+
+                _ => {}
+            }
+        }
+    }
+    return None;
+}
+
+fn run_with_noun_verb(mut p: Intcode, noun: Int, verb: Int) -> Result<Int, RunProgramError> {
+    p[1] = noun;
+    p[2] = verb;
+    run_program(p).map(|pp| pp[0])
 }
