@@ -14,17 +14,46 @@ pub fn part1() {
 
     let lines: Vec<&str> = PART1_INPUT.trim().lines().collect();
 
-    let closest_dist = closest_intersection_in_paths(lines[0], lines[1])
+    let wire1 = path_to_points(lines[0]);
+    let wire2 = path_to_points(lines[1]);
+    let wire1_set = map_to_set(&wire1);
+    let wire2_set = map_to_set(&wire2);
+    let intersections: HashSet<(i32, i32)> = wire1_set.intersection(&wire2_set).cloned().collect();
+    let closest_dist = intersections
+        .iter()
+        .min_by_key(|p| manhattan(**p))
+        .cloned()
         .map(manhattan)
         .expect("no intersecting points???");
     assert_eq!(closest_dist, PART1_ANSWER);
 
     println!("The Manhattan distance from the central port to the closest intersection: {}", closest_dist);
+
+    println!("### Day 3 Part 2 ###");
+
+    let temp: Vec<u32> = intersections
+        .iter()
+        .map(|p| wire1[p] + wire2[p])
+        .collect();
+    println!("{:?}", temp);
+    let closest_dist_fewest_steps = intersections
+        .iter()
+        .map(|p| wire1[p] + wire2[p])
+        .min()
+        .expect("huh");
+
+    println!("The fewest combined steps the wires must take to reach an intersection: {}", closest_dist_fewest_steps);
+}
+
+fn map_to_set<K, V>(map: &HashMap<K, V>) -> HashSet<K>
+    where K: Clone + Eq + std::hash::Hash
+{
+    map.keys().cloned().collect()
 }
 
 fn closest_intersection_in_paths(path1: &str, path2: &str) -> Option<(i32, i32)> {
-    let wire1: HashSet<(i32, i32)> = path_to_points(path1).into_iter().collect();
-    let wire2: HashSet<(i32, i32)> = path_to_points(path2).into_iter().collect();
+    let wire1: HashSet<(i32, i32)> = path_to_points(path1).keys().cloned().collect();
+    let wire2: HashSet<(i32, i32)> = path_to_points(path2).keys().cloned().collect();
     let intersections = wire1.intersection(&wire2);
     intersections.min_by_key(|p| manhattan(**p)).cloned()
 }
@@ -43,10 +72,10 @@ fn test_closest_intersection_in_paths() {
     }
 }
 
-fn path_to_points(path: &str) -> HashSet<(i32, i32)> {
-    let mut list = HashSet::new();
+fn path_to_points(path: &str) -> HashMap<(i32, i32), u32> {
+    let mut list = HashMap::new();
 
-    let (mut x, mut y) = (0, 0);
+    let (mut x, mut y, mut cnt) = (0, 0, 0);
     for step in path.split(',') {
         let (dir, dist): (char, i32) = {
             let (dir_str, dist_str) = step.split_at(1);
@@ -54,25 +83,26 @@ fn path_to_points(path: &str) -> HashSet<(i32, i32)> {
                 dist_str.parse().expect("couldn't parse distance number"))
         };
 
+        cnt += 1;
         match dir {
             'L' => for _ in 0..dist {
                 x -= 1;
-                list.insert((x, y));
+                list.entry((x, y)).or_insert(cnt);
             },
 
             'R' => for _ in 0..dist {
                 x += 1;
-                list.insert((x, y));
+                list.entry((x, y)).or_insert(cnt);
             },
 
             'D' => for _ in 0..dist {
                 y -= 1;
-                list.insert((x, y));
+                list.entry((x, y)).or_insert(cnt);
             },
 
             'U' => for _ in 0..dist {
                 y += 1;
-                list.insert((x, y));
+                list.entry((x, y)).or_insert(cnt);
             },
 
             _ => panic!("unknown direction '{}'", dir)
@@ -94,7 +124,7 @@ fn test_path_to_points() {
     ).collect();
 
     for (input, output) in tests {
-        assert_eq!(path_to_points(input), output);
+        assert_eq!(path_to_points(input).keys().cloned().collect::<HashSet<_>>(), output);
     }
 }
 
