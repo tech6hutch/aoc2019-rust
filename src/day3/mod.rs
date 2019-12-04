@@ -4,26 +4,26 @@ use std::{
 };
 
 static PART1_INPUT: &str = include_str!("./part1/input");
-static PART1_ANSWER: i32 = 1084;
+const PART1_ANSWER: i32 = 1084;
+const PART2_ANSWER: u32 = 9240;
 
-pub fn part1() {
+type Point = (i32, i32);
+type Wire = HashMap<Point, u32>;
+
+pub fn day3() {
     println!("### Day 3 Part 1 ###");
 
     test_path_to_points();
-    test_closest_intersection_in_paths();
 
     let lines: Vec<&str> = PART1_INPUT.trim().lines().collect();
 
-    let wire1 = path_to_points(lines[0]);
-    let wire2 = path_to_points(lines[1]);
-    let wire1_set = map_to_set(&wire1);
-    let wire2_set = map_to_set(&wire2);
-    let intersections: HashSet<(i32, i32)> = wire1_set.intersection(&wire2_set).cloned().collect();
-    let closest_dist = intersections
-        .iter()
+    let wire1 = parse_wire(lines[0]);
+    let wire2 = parse_wire(lines[1]);
+    let both = wires_intersection(wire1, wire2);
+    let closest_dist = both
+        .keys()
         .min_by_key(|p| manhattan(**p))
-        .cloned()
-        .map(manhattan)
+        .map(|p| manhattan(*p))
         .expect("no intersecting points???");
     assert_eq!(closest_dist, PART1_ANSWER);
 
@@ -31,88 +31,52 @@ pub fn part1() {
 
     println!("### Day 3 Part 2 ###");
 
-    let temp: Vec<u32> = intersections
-        .iter()
-        .map(|p| wire1[p] + wire2[p])
-        .collect();
-    println!("{:?}", temp);
-    let closest_dist_fewest_steps = intersections
-        .iter()
-        .map(|p| wire1[p] + wire2[p])
+    let fewest_steps = both
+        .values()
         .min()
+        .copied()
         .expect("huh");
+    assert_eq!(fewest_steps, PART2_ANSWER);
 
-    println!("The fewest combined steps the wires must take to reach an intersection: {}", closest_dist_fewest_steps);
+    println!("The fewest combined steps the wires must take to reach an intersection: {}", fewest_steps);
 }
 
-fn map_to_set<K, V>(map: &HashMap<K, V>) -> HashSet<K>
-    where K: Clone + Eq + std::hash::Hash
-{
-    map.keys().cloned().collect()
+fn wires_intersection(wire1: Wire, wire2: Wire) -> Wire {
+    wire1
+        .iter()
+        .filter_map(|(point, c1)| {
+            wire2
+                .get(point)
+                .map(|c2| (point.clone(), c1 + c2))
+        })
+        .collect()
 }
 
-fn closest_intersection_in_paths(path1: &str, path2: &str) -> Option<(i32, i32)> {
-    let wire1: HashSet<(i32, i32)> = path_to_points(path1).keys().cloned().collect();
-    let wire2: HashSet<(i32, i32)> = path_to_points(path2).keys().cloned().collect();
-    let intersections = wire1.intersection(&wire2);
-    intersections.min_by_key(|p| manhattan(**p)).cloned()
-}
-fn test_closest_intersection_in_paths() {
-    let tests: HashMap<(&str, &str), i32> = [
-        (("R8,U5,L5,D3", "U7,R6,D4,L4"),
-            6),
-        (("R75,D30,R83,U83,L12,D49,R71,U7,L72", "U62,R66,U55,R34,D71,R55,D58,R83"),
-            159),
-        (("R98,U47,R26,D63,R33,U87,L62,D20,R33,U53,R51", "U98,R91,D20,R16,D67,R40,U7,R15,U6,R7"),
-            135),
-    ].iter().cloned().collect();
-
-    for ((path1, path2), output) in tests {
-        assert_eq!(closest_intersection_in_paths(path1, path2).map(manhattan), Some(output));
-    }
-}
-
-fn path_to_points(path: &str) -> HashMap<(i32, i32), u32> {
+fn parse_wire(path: &str) -> Wire {
     let mut list = HashMap::new();
 
-    let (mut x, mut y, mut cnt) = (0, 0, 0);
-    for step in path.split(',') {
-        let (dir, dist): (char, i32) = {
-            let (dir_str, dist_str) = step.split_at(1);
-            (dir_str.chars().next().unwrap(),
-                dist_str.parse().expect("couldn't parse distance number"))
-        };
+    let (mut x, mut y, mut steps) = (0, 0, 0);
+    for cmd in path.split(',') {
+        let (dir, dist): (char, i32) = parse_cmd(cmd);
 
-        cnt += 1;
-        match dir {
-            'L' => for _ in 0..dist {
-                x -= 1;
-                list.entry((x, y)).or_insert(cnt);
-            },
-
-            'R' => for _ in 0..dist {
-                x += 1;
-                list.entry((x, y)).or_insert(cnt);
-            },
-
-            'D' => for _ in 0..dist {
-                y -= 1;
-                list.entry((x, y)).or_insert(cnt);
-            },
-
-            'U' => for _ in 0..dist {
-                y += 1;
-                list.entry((x, y)).or_insert(cnt);
-            },
-
-            _ => panic!("unknown direction '{}'", dir)
+        for _ in 0..dist {
+            match dir {
+                'L' => x -= 1, 'R' => x += 1,
+                'D' => y -= 1, 'U' => y += 1,
+                _ => panic!("unknown direction '{}'", dir)
+            }
+            let point = (x, y);
+            steps += 1;
+            if !list.contains_key(&point) {
+                list.insert(point, steps);
+            }
         }
     }
 
     list
 }
 fn test_path_to_points() {
-    let tests: HashMap<&str, HashSet<(i32, i32)>> = [
+    let tests: HashMap<&str, HashSet<Point>> = [
         ("R8,U5,L5,D3", vec![
             (1,0), (2,0), (3,0), (4,0), (5,0), (6,0), (7,0), (8,0),
             (8,1), (8,2), (8,3), (8,4), (8,5),
@@ -124,11 +88,19 @@ fn test_path_to_points() {
     ).collect();
 
     for (input, output) in tests {
-        assert_eq!(path_to_points(input).keys().cloned().collect::<HashSet<_>>(), output);
+        assert_eq!(parse_wire(input).keys().cloned().collect::<HashSet<_>>(), output);
     }
 }
 
+fn parse_cmd(cmd: &str) -> (char, i32) {
+    let (dir_str, dist_str) = cmd.split_at(1);
+    (
+        dir_str.chars().next().unwrap(),
+        dist_str.parse().expect("couldn't parse distance number"),
+    )
+}
+
 /// Calculate Manhattan distance between a point and the origin
-fn manhattan((x, y): (i32, i32)) -> i32 {
+fn manhattan((x, y): Point) -> i32 {
     x.abs() + y.abs()
 }
