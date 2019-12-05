@@ -1,3 +1,8 @@
+use std::{
+    iter::{Map, Peekable, Zip},
+    str::Chars,
+};
+
 const PART1_ANSWER: u32 = 1767;
 
 pub fn part1() {
@@ -65,3 +70,63 @@ pub fn part1() {
 
     println!("How many different passwords: {}", n);
 }
+
+fn passwords_in_range(from: u32, to: u32) -> u32 {
+    // let min_digits: Vec<u32> = from.to_string().chars().map(|c| c.to_digit(10).unwrap()).collect();
+    // let max_digits: Vec<u32> = to.to_string().chars().map(|c| c.to_digit(10).unwrap()).collect();
+    let digit_bounds_iter = from.to_digits().zip(to.to_digits()).peekable();
+
+    let (min, max) = digit_bounds_iter.next().unwrap();
+    for d in min..=max {
+        let in_last_iter = d == max;
+        _loop_passwords(
+            digit_bounds_iter.clone(),
+            false,
+            d,
+            in_last_iter,
+        );
+    }
+}
+
+fn _loop_passwords<I: Iterator<Item = (u32, u32)>>(
+    digit_bounds_iter: Peekable<I>,
+    found_2_adjacent_digits_same: bool,
+    parent_d: u32,
+    parent_in_last_iter: bool,
+) -> u32 {
+    let (mut min, mut max) = digit_bounds_iter.next().unwrap();
+    if parent_d > min {
+        min = parent_d;
+    }
+    if !parent_in_last_iter {
+        max = 9;
+    }
+    for d in min..=max {
+        let in_last_iter = parent_in_last_iter && d == max;
+        let found_2_adjacent_digits_same = found_2_adjacent_digits_same || d == parent_d;
+        _loop_passwords(
+            digit_bounds_iter.clone(),
+            found_2_adjacent_digits_same,
+            d,
+            in_last_iter,
+        );
+    }
+}
+
+fn char_to_digit(c: char) -> u32 {
+    c.to_digit(10).unwrap()
+}
+
+trait ToDigits
+    where Self: Sized + ToString
+{
+    // fn to_digits<'a>(self) -> Zip<Map<Chars<'a>, fn(char) -> u32>, Map<Chars<'a>, fn(char) -> u32>>;
+    fn to_digits<'a>(self) -> Map<Chars<'a>, fn(char) -> u32> {
+        self
+            .to_string()
+            .chars()
+            .map(char_to_digit)
+    }
+}
+
+impl ToDigits for u32 {}
