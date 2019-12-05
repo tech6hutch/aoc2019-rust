@@ -10,14 +10,6 @@ pub fn part1() {
 
     const MIN: u32 = 145852;
     const MAX: u32 = 616942;
-    // let mut min_digits: Vec<u32> = MIN.to_string().chars().map(|c| c.to_digit(10).unwrap()).collect();
-    // let max_digits: Vec<u32> = MAX.to_string().chars().map(|c| c.to_digit(10).unwrap()).collect();
-    // assert!(!min_digits.iter().any(|d| *d > 9));
-    // assert!(!max_digits.iter().any(|d| *d > 9));
-    // for i in 1..min_digits.len() {
-    //     min_digits[i] = min_digits[i].max(min_digits[i-1]);
-    // }
-    // assert!(!min_digits.iter().any(|d| *d > 9));
 
     // let mut n = 0;
     // for i in MIN..=MAX {
@@ -39,6 +31,7 @@ pub fn part1() {
     //         n += 1;
     //     }
     // }
+
     // for d6 in min_digits[0]..=max_digits[0] {
     //     let last_d6 = d6 == max_digits[0];
     //     for d5 in min_digits[1].max(d6)..=(if last_d6 { max_digits[1] } else { 9 }) {
