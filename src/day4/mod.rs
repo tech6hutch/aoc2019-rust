@@ -1,9 +1,15 @@
 use std::convert::TryInto;
 
-/// So that things don't look ugly
+// So that things don't look ugly.
+// I can't just use BitAnd::and and BitOr::or, since those don't short-circuit.
 macro_rules! and {
     ($b1:expr, $b2:expr,) => {
         $b1 && $b2
+    };
+}
+macro_rules! or {
+    ($b1:expr, $b2:expr, $b3:expr,) => {
+        $b1 || $b2 || $b3
     };
 }
 
@@ -20,6 +26,7 @@ pub fn part1() {
             .to_string()
             .chars()
             .collect::<Vec<_>>();
+        debug_assert_eq!(digits.len(), 6);
         and!(
             digits.windows(2).any(two_adjacent),
             digits.windows(2).all(never_decrease),
@@ -49,11 +56,13 @@ pub fn part2() {
             .to_string()
             .chars()
             .collect::<Vec<_>>();
-        assert_eq!(digits.len(), 6);
+        debug_assert_eq!(digits.len(), 6);
         and!(
-            only_two_adjacent_at_end(&digits[..=1], digits[2]) ||
-                digits.windows(4).any(only_two_adjacent) ||
+            or!(
+                only_two_adjacent_at_end(&digits[..=1], digits[2]),
+                digits.windows(4).any(only_two_adjacent),
                 only_two_adjacent_at_end(&digits[4..], digits[3]),
+            ),
             digits.windows(2).all(never_decrease),
         )
     }).count().try_into().unwrap();
@@ -62,13 +71,13 @@ pub fn part2() {
 }
 
 fn only_two_adjacent<T: PartialEq>(s: &[T]) -> bool {
-    assert_eq!(s.len(), 4);
+    debug_assert_eq!(s.len(), 4);
     s[1] == s[2] &&
         s[0] != s[1] && s[2] != s[3]
 }
 
 fn only_two_adjacent_at_end<T: PartialEq>(two: &[T], next: T) -> bool {
-    assert_eq!(two.len(), 2);
+    debug_assert_eq!(two.len(), 2);
     two[0] == two[1] &&
         two[1] != next
 }
