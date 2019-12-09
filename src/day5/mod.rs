@@ -1,6 +1,6 @@
 use std::{
     collections::HashMap,
-    convert::TryFrom,
+    convert::{TryFrom, TryInto},
     io,
     num::ParseIntError,
 };
@@ -10,8 +10,9 @@ type Intcode = Vec<Int>;
 
 static PART1_INPUT: &str = include_str!("./part1/input");
 const PART1_ANSWER: Int = 5074395;
+const PART2_ANSWER: Int = 8346937;
 
-pub fn part1() {
+pub fn day5() {
     println!("### Day 5 Part 1 ###");
 
     test_parse_program();
@@ -19,7 +20,8 @@ pub fn part1() {
 
     let program = parse_program(PART1_INPUT).unwrap();
     run_program(program).expect("error running Intcode");
-    println!("(The right output is {})", PART1_ANSWER);
+    println!("(The right output for input 1 is {})", PART1_ANSWER);
+    println!("(The right output for input 5 is {})", PART2_ANSWER);
 }
 
 fn parse_program(p: &str) -> Result<Intcode, ParseIntError> {
@@ -71,6 +73,7 @@ fn run_program(mut p: Intcode) -> Result<Intcode, RunProgramError> {
         };
 
         match opcode {
+            // Add
             1 => {
                 let mut params = take_params(&p, &mut i, 3)?;
                 let a1 = resolve_param(&p, &mut params, &mut param_modes)?;
@@ -80,6 +83,7 @@ fn run_program(mut p: Intcode) -> Result<Intcode, RunProgramError> {
                 *out = a1 + a2;
             },
 
+            // Multiply
             2 => {
                 let mut params = take_params(&p, &mut i, 3)?;
                 let f1 = resolve_param(&p, &mut params, &mut param_modes)?;
@@ -89,6 +93,7 @@ fn run_program(mut p: Intcode) -> Result<Intcode, RunProgramError> {
                 *out = f1 * f2;
             },
 
+            // Input
             3 => {
                 let mut params = take_params(&p, &mut i, 1)?;
                 let out = resolve_param_mut(&mut p, &mut params, &mut param_modes)?;
@@ -96,10 +101,49 @@ fn run_program(mut p: Intcode) -> Result<Intcode, RunProgramError> {
                 *out = input;
             },
 
+            // Output
             4 => {
                 let mut params = take_params(&p, &mut i, 1)?;
                 let out = resolve_param(&mut p, &mut params, &mut param_modes)?;
                 output(out);
+            },
+
+            // Jump-if-true
+            5 => {
+                let mut params = take_params(&p, &mut i, 2)?;
+                let condition = resolve_param(&p, &mut params, &mut param_modes)?;
+                let addr = resolve_param(&p, &mut params, &mut param_modes)?;
+                if condition != 0 {
+                    i = addr.try_into().unwrap();
+                }
+            },
+
+            // Jump-if-false
+            6 => {
+                let mut params = take_params(&p, &mut i, 2)?;
+                let condition = resolve_param(&p, &mut params, &mut param_modes)?;
+                let addr = resolve_param(&p, &mut params, &mut param_modes)?;
+                if condition == 0 {
+                    i = addr.try_into().unwrap();
+                }
+            },
+
+            // Less than
+            7 => {
+                let mut params = take_params(&p, &mut i, 3)?;
+                let first = resolve_param(&p, &mut params, &mut param_modes)?;
+                let second = resolve_param(&p, &mut params, &mut param_modes)?;
+                let out = resolve_param_mut(&mut p, &mut params, &mut param_modes)?;
+                *out = if first < second { 1 } else { 0 };
+            },
+
+            // Equals
+            8 => {
+                let mut params = take_params(&p, &mut i, 3)?;
+                let first = resolve_param(&p, &mut params, &mut param_modes)?;
+                let second = resolve_param(&p, &mut params, &mut param_modes)?;
+                let out = resolve_param_mut(&mut p, &mut params, &mut param_modes)?;
+                *out = if first == second { 1 } else { 0 };
             },
 
             99 =>
