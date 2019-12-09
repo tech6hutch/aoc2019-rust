@@ -163,12 +163,12 @@ impl Default for ParamModes {
     }
 }
 
-fn resolve_param(p: &Intcode, params: &mut Vec<Int>, mode: &mut Vec<ParamModes>) -> Result<Int, RunProgramError> {
+fn resolve_param(p: &Intcode, params: &mut Vec<Int>, modes: &mut Vec<ParamModes>) -> Result<Int, RunProgramError> {
     use RunProgramError::*;
     use ParamModes::*;
 
     let param = params.pop().expect("resolve_param() called too many times");
-    match mode.pop().unwrap_or_default() {
+    match modes.pop().unwrap_or_default() {
         PositionMode => match usize::try_from(param) {
             Ok(addr)            => Ok(p[addr]),
             Err(_) if param < 0 => Err(NegativePositionalParam),
@@ -179,12 +179,12 @@ fn resolve_param(p: &Intcode, params: &mut Vec<Int>, mode: &mut Vec<ParamModes>)
     }
 }
 
-fn resolve_param_mut<'a>(p: &'a mut Intcode, params: &mut Vec<Int>, mode: &mut Vec<ParamModes>) -> Result<&'a mut Int, RunProgramError> {
+fn resolve_param_mut<'a>(p: &'a mut Intcode, params: &mut Vec<Int>, modes: &mut Vec<ParamModes>) -> Result<&'a mut Int, RunProgramError> {
     use RunProgramError::*;
     use ParamModes::*;
 
     let param = params.pop().expect("resolve_param_mut() called too many times");
-    match mode.pop().unwrap_or_default() {
+    match modes.pop().unwrap_or_default() {
         PositionMode => match usize::try_from(param) {
             Ok(addr)            => Ok(&mut p[addr]),
             Err(_) if param < 0 => Err(NegativePositionalParam),
